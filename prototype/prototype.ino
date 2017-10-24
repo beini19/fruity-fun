@@ -60,39 +60,74 @@ void setup() {
     identifier=0x9341;
    
   }
-    tft.begin(identifier);
+//////////////////////////////////////////////////////////////////  
+  tft.begin(identifier);
     
   //background
-    tft.fillScreen(BLACK);
+    tft.fillScreen(WHITE);
     delay(2000);
 
   // set up grid array of 8 x 6 objects
   int grid[6][6];
-  tft.fillCircle(100, 100, 40, RED);
-  delay(1000);
-  //randomize grid
 
-  for (int x = 0; x < 3; x ++)
-    for (int y = 0; y < 3; y--) {
+//  tft.fillCircle(100, 100, 40, GREEN);
+//  delay(1000);
+  //randomize grid
+  
+ for (int x = 0; x < 3; x++) {
+    for (int y = 0; y < 3; y++) {
+      
       grid[x][y] = random(6);
-      if (grid[x][y] == 0)
-        tft.fillCircle(x*10, 100, 10, RED);
-      else if (grid[x][y] == 1)
-         tft.fillCircle(40, 200, 10, ORANGE);
-      else if (grid[x][y] == 2)
-         tft.fillCircle(x*50, y*100, 10, YELLOW);
-      else if (grid[x][y] == 3)
-         tft.fillCircle(x*50, y*100, 10, GREEN);
-      else if (grid[x][y] == 4)
-        tft.fillCircle(50, y*100, 10, BLUE);
-      else
-          tft.fillRect(300, 130, 5, 10, PURPLE);
+//      Serial.println(grid[x][y]);
     }
-  delay(1000);
+ }
+
+/*Numbers corresponding to each colour:
+RED = 0
+ORANGE = 1
+YELLOW = 2
+GREEN = 3
+BLUE = 4
+PURPLE = 5
+*/
+
+//Initialization variables
+int cSize = 10;
+int elementDistance = 40;
+int x1Border = elementDistance/2;
+//Draw grid
+  for (int i = 0; i <= 5; i++) {
+    for (int j = 0; j <= 6; j++) {
+      tft.drawFastVLine(i*elementDistance + 20, 20, 240, BLACK);
+      tft.drawFastHLine(20, j*elementDistance + 20, 200, BLACK);
+    }
+  }
+      
+  for (int i = 0; i <= 4; i++) {
+    for (int j = 0; j <= 5; j++) {
+      // Assign random colours to each circle
+      grid[i][j] = random(6);
+      if (grid[i][j] == 0) 
+        tft.fillCircle((i+1)*elementDistance, (j+1)*elementDistance, cSize, RED);
+      else if (grid[i][j] == 1) 
+        tft.fillCircle((i+1)*elementDistance, (j+1)*elementDistance, cSize, ORANGE);
+      else if (grid[i][j] == 2) 
+        tft.fillCircle((i+1)*elementDistance, (j+1)*elementDistance, cSize, YELLOW);
+      else if (grid[i][j] == 3) 
+        tft.fillCircle((i+1)*elementDistance, (j+1)*elementDistance, cSize, GREEN);
+      else if (grid[i][j] == 4) 
+        tft.fillCircle((i+1)*elementDistance, (j+1)*elementDistance, cSize, BLUE);
+      else if (grid[i][j] == 5)  
+        tft.fillCircle((i+1)*elementDistance, (j+1)*elementDistance, cSize, PURPLE);
+            
+    }
 }
-/*
- * void (
- */
+
+      
+
+
+}
+
 void loop() {
  // TSPoint p = ts.getPoint();
 }
