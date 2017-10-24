@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdbool.h>
+#include <stdlib.h>
+#include <time.h>
 
 #define ROWS 5
 #define COLUMNS 6
@@ -90,11 +92,14 @@ void moveDown(int array[ROWS][COLUMNS], int x, int y); //MOVE EVERYTHING DOWN - 
 
 int main (void) {
     
-    int grid[5][6] = {{1, 0, 1, 1, 5, 6},{1, 1, 1, 1, 5, 4}, {3, 2, 1, 5, 6, 4},{4, 3, 2, 5, 1, 4},{0,1,4,2,2,2}};
-    
+    int grid[5][6];
+    srand (time(NULL));
+
     for (int x = 0; x < ROWS; x ++) {
-        for (int y = 0; y < COLUMNS; y++)
+        for (int y = 0; y < COLUMNS; y++){
+            grid[x][y] = rand()%6;
             printf("%d   ", grid[x][y]);
+        }
         printf("\n");
     }
     checkGrid(grid, ROWS, COLUMNS);
