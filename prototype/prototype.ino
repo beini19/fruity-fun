@@ -74,8 +74,8 @@ void setup() {
 //  delay(1000);
   //randomize grid
   
- for (int x = 0; x < 3; x++) {
-    for (int y = 0; y < 3; y++) {
+ for (int x = 0; x < 5; x++) {
+    for (int y = 0; y < 6; y++) {
       
       grid[x][y] = random(6);
 //      Serial.println(grid[x][y]);
