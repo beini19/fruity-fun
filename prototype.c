@@ -6,6 +6,19 @@
 #define ROWS 5
 #define COLUMNS 6
 
+void printArray(int array[ROWS][COLUMNS]) {
+    for (int x = 0; x < ROWS; x++) {
+        for (int y = 0; y < COLUMNS; y++) {
+            if (array[x][y] == -1) {
+                printf("%d  ", array[x][y]);
+            } else {
+                printf(" %d  ", array[x][y]);
+            }
+        }
+        printf("\n");
+    }
+}
+
 bool checkGrid (int array[ROWS][COLUMNS], int row, int col ) { //perhaps replace parameters bc of header?
     int matched [row][col];
     int match = 0, r = -1;
@@ -71,7 +84,7 @@ bool checkGrid (int array[ROWS][COLUMNS], int row, int col ) { //perhaps replace
     printf("\nshow matches\n");
     for (int x = 0; x < row; x ++) {
         for (int y = 0; y < col; y ++) {
-            printf("%d  ", matched[x][y]);
+            printf(" %d  ", matched[x][y]);
         }
         printf("\n");
     }
@@ -80,18 +93,14 @@ bool checkGrid (int array[ROWS][COLUMNS], int row, int col ) { //perhaps replace
     for (int x = 0; x < row; x++) {
         for (int y = 0; y < col; y++) {
             if (matched[x][y] == 1) {
-                array[x][y] = 0;
+                array[x][y] = -1;
             }
         }
     }
 
     printf("\nafter deleting matches\n");
-    for (int a = 0; a < row; a++) {
-        for (int b = 0; b < col; b++) {
-            printf("%d  ", array[a][b]);
-        }
-        printf("\n");
-    }
+    printArray(array);
+
     return change;
 }
 
@@ -99,11 +108,11 @@ void updateGrid(int array[ROWS][COLUMNS], int x, int y) {
     //shift down
     for (int x = ROWS - 1; x >= 0; x--) {//starting from the bottom row
         for (int y = 0; y < COLUMNS; y++) {//starting from the left-most column
-            if (array[x][y] == 0) {  
+            if (array[x][y] == -1) {  
                 for (int a = x-1; a >= 0; a--) {
-                    if (array[a][y] != 0) {
+                    if (array[a][y] != -1) {
                         array[x][y] = array[a][y];
-                        array[a][y] = 0;
+                        array[a][y] = -1;
                         break;
                     }
                 }
@@ -113,30 +122,20 @@ void updateGrid(int array[ROWS][COLUMNS], int x, int y) {
 
     //print after shifting down
     printf("\nafter shifting down\n");
-    for (int x = 0; x < ROWS; x++) {
-        for (int y = 0; y < COLUMNS; y++) {
-            printf("%d  ", array[x][y]);
-        }    
-        printf("\n");
-    }
+    printArray(array);
 
     //refill
     for (int x = 0; x < ROWS; x++) {
         for (int y = 0; y < COLUMNS; y++) {
-            if (array[x][y] == 0) {
-                array[x][y] = rand() % 6 + 1;
+            if (array[x][y] == -1) {
+                array[x][y] = rand() % 6;
             }
         }
     }
 
     //print array after refill
     printf("\nafter refill\n");
-    for (int x = 0; x < ROWS; x++) {
-        for (int y = 0; y < COLUMNS; y++) {
-            printf("%d  ", array[x][y]);
-        }
-        printf("\n");
-    }
+    printArray(array);
 
     //check new array for matches
     while(checkGrid(array, ROWS, COLUMNS)) {
@@ -144,45 +143,102 @@ void updateGrid(int array[ROWS][COLUMNS], int x, int y) {
     }
 }
 
-/*bool movePossible(int array[ROWS][COLUMNS]) {
+
+void shuffle(int array[ROWS][COLUMNS]) {
+    printf("\nafter shuffling\n");
     for (int x = 0; x < ROWS; x ++) {
-        for (int y = 0; y < COLUMNS; y ++) {
+        for (int y = 0; y < COLUMNS; y++){
+            array[x][y] = rand()%6;
+            printf(" %d  ", array[x][y]);
+        }
+        printf("\n");
+    }
+}
+
+bool movePossible(int array[ROWS][COLUMNS]) {
+    int a = 0;
+    bool isPossible = false;
+
+    for (int x = 0; x < ROWS; x++) {//checks from left to right
+        for (int y = 0; y < COLUMNS; y++) {//checks from top to bottom
+            a = array[x][y];
+            
             //check rows
-            if (y-1 < COLUMNS && array[x][y] == array[x][y-1]) {//there are 2 in a row
-                if (y-2 >= 0 && array[x][y-2] == array[x][y]) {
-                    return true;
+            if (y+1 < COLUMNS && array[x][y+1] == a) {
+                if (y-2 >= 0 && array[x][y-2] == a) {
+                    isPossible = true;
+                    array[x][y-2] = 6;//elements that could be matched are indicated with 6
                 } else if (y-1 >= 0) {
-                    if (x-1 >= 0 && array[x-1][y-1] == array[x][y]) {
-                        return true;
-                    } else if (x+1 < ROWS && array[x+1][y-1] == array[x][y]) {
-                        return true;
+                    if (x-1 >= 0 && array[x-1][y-1] == a) {
+                        isPossible = true;
+                        array[x-1][y-1] = 6;
+                    } else if (x+1 < ROWS && array[x+1][y-1] == a) {
+                        isPossible = true;
+                        array[x+1][y-1] = 6;
                     }
                 } else if (y+2 < COLUMNS) {
-                    if (x-1 >= 0 && array[x-1][y+2] == array[x][y]) {
-                        return true;
-                    } else if (x+1 < ROWS && array[x+1][y+2] == array[x][y]) {
-                        return true;
+                    if (x-1 >= 0 && array[x-1][y+2] == a) {
+                        isPossible = true;
+                        array[x-1][y+2] = 6;
+                    } else if (x+1 < ROWS && array[x+1][y+2] == a) {
+                        isPossible = true;
+                        array[x+1][y+2] = 6;
                     }
-                } else if (y+3 < COLUMNS && array[x][y+3] == array[x][y]) {
-                    return true;
+                } else if (y+3 < COLUMNS && array[x][y+3] == a) {
+                    isPossible = true;
+                    array[x][y+3] = 6;
                 }
+            }
+
+            if(isPossible) {
+                array[x][y] = 6;
+                array[x][y+1] = 6;
+                return isPossible;
+            }
+
             //check columns
-            } else if (x+1 <= ROWS && array[x][y] == array[x+1][y]) {//if there are 2 in a column
-                if (x-2 >= 0 && array[x-2][y] == array[x][y]) {
-                    return true;
+            if (x+1 < ROWS && array[x+1][y] == a) {
+                if (x-2 >= 0 && array[x-2][y] == a) {
+                    isPossible = true;
+                    array[x-2][y] = 6;
                 } else if (x-1 >= 0) {
-                    if (y-1 >= 0 && array[x-1][y-1] == array[x][y]) {
-                        return true;
-                    } else if (y+1 < COLUMNS && array[x-1][y+1] == array[x][y]) {
-                        return true;
+                    if (y-1 >= 0 && array[x-1][y-1] == a) {
+                        isPossible = true;
+                        array[x-1][y-1] = 6;
+                    } else if (y+1 < COLUMNS && array[x-1][y+1] == a) {
+                        isPossible = true;
+                        array[x-1][y+1] = 6;
                     }
-                } else if (x + 2 < ROWS && )
-            } 
+                } else if (x+2 < ROWS) {
+                    if (y-1 >= 0 && array[x+2][y-1] == a) {
+                        isPossible = true;
+                        array[x+1][y-1] = 6;
+                    } else if (y+1 < COLUMNS && array[x+2][y+1] == a) {
+                        isPossible = true;
+                        array[x+2][y+1] = 6;
+                    }
+                } else if (x+3 < ROWS && array[x+3][y] == a) {
+                    isPossible = true;
+                    array[x+3][y] = 6;
+                }
+            }
+
+            if(isPossible) {
+                array[x][y] = 6;
+                array[x+1][y] = 6;
+                return isPossible;
+            }
         }
     }
-    return false;//if none of the previous conditions were satisfied, no move is possible
+
+    while(!isPossible) {
+        printf("^no possible move\n");
+        shuffle(array);
+        isPossible = movePossible(array);
+    }
+
+    return isPossible;//if none of the previous conditions were satisfied, no move is possible
 }
-*/
 
 //void countPoints(int array[ROWS][COLUMNS, int x, int y]); //count points
 
@@ -193,14 +249,23 @@ int main (void) {
     printf("print array\n");
     for (int x = 0; x < ROWS; x ++) {
         for (int y = 0; y < COLUMNS; y++){
-            grid[x][y] = rand()%6 + 1;
-            printf("%d  ", grid[x][y]);
+            grid[x][y] = rand()%6;
+            printf(" %d  ", grid[x][y]);
         }
         printf("\n");
     }
     
     if (checkGrid(grid, ROWS, COLUMNS)) {
         updateGrid(grid, ROWS, COLUMNS);
+    }
+
+    bool possibleMove = movePossible(grid);
+    
+    printf("\nafter scanning for possible moves\n");
+    printArray(grid);
+
+    if(possibleMove) {
+        printf("Move is possible!\n");
     }
 
     return 0;
