@@ -1,17 +1,3 @@
-#include <Dns.h>
-#include <Ethernet.h>
-#include <EthernetClient.h>
-#include <Dhcp.h>
-#include <EthernetServer.h>
-#include <EthernetUdp.h>
-
-#include <FirmataDefines.h>
-#include <Boards.h>
-#include <FirmataMarshaller.h>
-#include <FirmataParser.h>
-#include <FirmataConstants.h>
-#include <Firmata.h>
-
 #include <Elegoo_GFX.h> //include libraries
 #include <Elegoo_TFTLCD.h>
 #include <TouchScreen.h>
@@ -23,7 +9,6 @@
 //#include <time.h>
 #include <math.h>
 
-int points = 0;
 //pins
 #define CS A3
 #define CD A2
@@ -76,7 +61,7 @@ int y2 = -1;
 int selectElement = 0;
 
 int grid[5][6];
-int totalPoints = 0;
+int points = 0;
 int countMatches[6] = {0};
 bool possible;
 int matched[ROWS][COLUMNS] = {0};
@@ -92,34 +77,49 @@ int posMove[ROWS][COLUMNS] = {0};
 
 /************************  FUNCTIONS  **************************************************/
 void reset(int grid[ROWS][COLUMNS]) {//reset every element of grid to 0
-  Serial.println("resetting\n");
   for (int i = 0; i < ROWS; i++) {
     for (int j = 0; j < COLUMNS; j++) {
-      grid[i][j] = -1;
+      grid[i][j] = 8;//no element would ever equal 8 under any circumstances
     }
   }
 }
 
+void printNumGrid(int grid[ROWS][COLUMNS]) {
+  for (int x = 0; x < ROWS; x++) {
+    for (int y = 0; y < COLUMNS; y++) {
+      if (grid[x][y] < 0) {
+        Serial.print(grid[x][y]); Serial.print(" ");
+      } else {
+        Serial.print(" "); Serial.print(grid[x][y]); Serial.print(" ");
+      }
+    }
+    Serial.println();
+  }
+}
 
 //Draw candies
 void printGrid(int grid[ROWS][COLUMNS]) {
   for (int x = 0; x < ROWS; x ++) {
     for (int y = 0; y < COLUMNS; y++) {
       //Check the random number to determine which colour fruit to draw
-      if (grid[x][y] == 0)
-        tft.fillCircle((x + 1)*elementDistance, (y + 1)*elementDistance, cSize, RED);
-      else if (grid[x][y] == 1)
-        tft.fillCircle((x + 1)*elementDistance, (y + 1)*elementDistance, cSize, ORANGE);
-      else if (grid[x][y] == 2)
-        tft.fillCircle((x + 1)*elementDistance, (y + 1)*elementDistance, cSize, YELLOW);
-      else if (grid[x][y] == 3)
-        tft.fillCircle((x + 1)*elementDistance, (y + 1)*elementDistance, cSize, GREEN);
-      else if (grid[x][y] == 4)
-        tft.fillCircle((x + 1)*elementDistance, (y + 1)*elementDistance, cSize, BLUE);
-      else if (grid[x][y] == 5)
-        tft.fillCircle((x + 1)*elementDistance, (y + 1)*elementDistance, cSize, PURPLE);
+      if (grid[x][y] == 0) {
+        tft.fillCircle((x + 1)*elementDistance, (COLUMNS - y)*elementDistance, cSize, RED);//(y + 1) * elementDistance
+      } else if (grid[x][y] == 1) {
+        tft.fillCircle((x + 1)*elementDistance, (COLUMNS - y)*elementDistance, cSize, ORANGE);
+      } else if (grid[x][y] == 2) {
+        tft.fillCircle((x + 1)*elementDistance, (COLUMNS - y)*elementDistance, cSize, YELLOW);
+      } else if (grid[x][y] == 3) {
+        tft.fillCircle((x + 1)*elementDistance, (COLUMNS - y)*elementDistance, cSize, GREEN);
+      } else if (grid[x][y] == 4) {
+        tft.fillCircle((x + 1)*elementDistance, (COLUMNS - y)*elementDistance, cSize, BLUE);
+      } else if (grid[x][y] == 5) {
+        tft.fillCircle((x + 1)*elementDistance, (COLUMNS - y)*elementDistance, cSize, PURPLE);
+      }
+      tft.fillCircle()
     }
   }
+
+  delay(2000);
 }
 
 int displayMatch(int matchedElement) {
@@ -138,6 +138,40 @@ int displayMatch(int matchedElement) {
       return - 5;
   }
 }
+
+void countPoints(int matched[ROWS][COLUMNS], int countMatches[6]) {
+    for (int x = 0; x < ROWS; x++) {
+        for (int y = 0; y < COLUMNS; y++) {
+            switch(matched[x][y]) {
+                case -1:
+                    countMatches[1]++;
+                    break;
+                case -2:
+                    countMatches[2]++;
+                    break;
+                case -3:
+                    countMatches[3]++;
+                    break;
+                case -4: 
+                    countMatches[4]++;
+                    break;
+                case -5:
+                    countMatches[5]++;
+                    break;
+                case -6:
+                    countMatches[0]++;
+                    break;
+            }
+        }
+    }
+    
+    for (int i = 0; i < 6; i++) {
+        points += countMatches[i]*10;
+        countMatches[i] = 0;
+    }
+
+    reset(matched);
+} 
 
 bool checkGrid (int grid[ROWS][COLUMNS], int matched[ROWS][COLUMNS]) { //perhaps replace parameters bc of header?
   bool change = false;
@@ -192,6 +226,9 @@ bool checkGrid (int grid[ROWS][COLUMNS], int matched[ROWS][COLUMNS]) { //perhaps
     r = -1;
     match = 0;
   }
+
+  Serial.println("matched: ");
+  printNumGrid(matched);
   return change;
 }
 
@@ -203,22 +240,39 @@ void updateGrid(int grid[ROWS][COLUMNS], int matched[ROWS][COLUMNS]) {
   for (int x = 0; x < ROWS; x++) {
     for (int y = 0; y < COLUMNS; y++) {
       if (matched[x][y] < 0) {
-        grid[x][y] = -1;
+        grid[x][y] = 8;
+        //matches are highlighted in green
+        tft.drawRect(tft.width() - (20 + elementDistance * (ROWS - x)), tft.height() - (20 + elementDistance * (y + 2)),//i + 1
+                         elementDistance + 1, elementDistance + 1, GREEN);
       }
     }
   }
 
-  Serial.println("grid should be full of -1s\n");
+  Serial.println("matches: ");
+  delay(300);
+  Serial.println("grid: ");
   printGrid(grid);
+  delay(300);
+  printNumGrid(grid);
+
+  //unhighlight where matches used to be
+  for (int x = 0; x < ROWS; x++) {
+    for (int y = 0; y < COLUMNS; y++) {
+      if (matched[x][y] < 0) {
+        tft.drawRect(tft.width() - (20 + elementDistance * (ROWS - x)), tft.height() - (20 + elementDistance * (y + 2)),//i + 1
+                         elementDistance + 1, elementDistance + 1, WHITE);
+      }
+    }
+  }
 
   //shift down
   for (int x = ROWS - 1; x >= 0; x--) {//starting from the bottom row
     for (int y = 0; y < COLUMNS; y++) {//starting from the left-most column
-      if (grid[x][y] == -1) {
+      if (grid[x][y] == 8) {
         for (int a = x - 1; a >= 0; a--) {
-          if (grid[a][y] != -1) {
+          if (grid[a][y] != 8) {
             grid[x][y] = grid[a][y];
-            grid[a][y] = -1;
+            grid[a][y] = 8;
             break;
           }
         }
@@ -227,21 +281,24 @@ void updateGrid(int grid[ROWS][COLUMNS], int matched[ROWS][COLUMNS]) {
   }
 
   Serial.println("after shifting down\n");
-  printGrid(grid);
+  printNumGrid(grid);
 
   //refill
   for (int x = 0; x < ROWS; x++) {
     for (int y = 0; y < COLUMNS; y++) {
-      if (grid[x][y] == -1) {
-        grid[x][y] = rand() % 6;
+      if (grid[x][y] == 8) {
+        grid[x][y] = random(6);
       }
     }
   }
 
   Serial.println("after refilling\n");
   printGrid(grid);
+  delay(500);
+  printNumGrid(grid);
 
-  reset(matched);
+  countPoints(matched, countMatches);
+  Serial.print("total points: "); Serial.println(points);
 
   //check new grid for matches
   if (checkGrid(grid, matched)) {
@@ -331,16 +388,29 @@ bool movePossible(int grid[ROWS][COLUMNS], int posMove[ROWS][COLUMNS]) {
 }
 
 void switchValues (int grid[ROWS][COLUMNS], int x1, int y1, int x2, int y2) {
+  Serial.println("switching values...");
+  
   //switch two values in grid
   int r;
+
+  printNumGrid(grid);
+  Serial.print("x1: "); Serial.println(x1); Serial.print(" y1: "); Serial.println(y1); Serial.print(" x2: "); Serial.println(x2); Serial.print(" y2: "); Serial.println(y2);
+  Serial.print("grid[x1][y1]: "); Serial.println(grid[x1][y1]);
+  Serial.print("grid[x2][y2]: "); Serial.println(grid[x2][y2]);
 
   //switch values
   r = grid[x1][y1];
   grid[x1][y1] = grid[x2][y2];
   grid[x2][y2] = r;
 
-  Serial.println("\n");
-  printGrid (grid);
+  Serial.println("After switching values: ");
+  //Serial.print("x1: "); Serial.println(x1); Serial.print("y1: "); Serial.println(y1); Serial.print("x2: "); Serial.println(x2); Serial.print("y2: "); Serial.println(y2);
+  Serial.print("grid[x1][y1]: "); Serial.println(grid[x1][y1]);
+  Serial.print("grid[x2][y2]: "); Serial.println(grid[x2][y2]);
+  printGrid(grid);
+  Serial.println("After printing grid");
+  printNumGrid(grid);
+  delay(500);
 }
 
 /*********************************  SETUP  *****************************************/
@@ -379,6 +449,7 @@ void setup() {
 
   }
   //////////////////////////////////////////////////////////////////
+  randomSeed(analogRead(0));
   tft.begin(identifier);
 
   //background
@@ -397,26 +468,32 @@ void setup() {
   //Set up initial candy grid
   for (int x = 0; x < ROWS; x ++) {
     for (int y = 0; y < COLUMNS; y++) {
-      grid[x][y] = rand() % 6;
+      grid[x][y] = random(6);
     }
   }
+  Serial.println("original grid: ");
+  printGrid(grid);
+  printNumGrid(grid);
+  
+  //set everything in matched to 8
+  reset(matched);
 
-  //create matched, set everything in matched to 0
-  Serial.println("original matched: ");
-  printGrid(matched);
+  delay(500);
 
-  //create posMove, set everything in posMove to 0
-  Serial.println("original posMove: ");
-  printGrid(posMove);
-
-
+  //set everything in posMove to 8
+  reset(posMove);
 
   //checks original grid for matches and updates
   if (checkGrid(grid, matched)) {
     Serial.println("there are matches!");
     printGrid(matched);
+    Serial.println("matched: ");
+    printNumGrid(matched);
+    delay(200);
     updateGrid(grid, matched);
     Serial.println("updated grid!");
+    printGrid(grid);
+    printNumGrid(grid);
   }
 
   //checks if match-free grid has any possible moves
@@ -424,6 +501,9 @@ void setup() {
   Serial.print("is move possible? ");
   Serial.println(possible);
   printGrid(posMove);
+  delay(500);
+  printNumGrid(posMove);
+  printGrid(grid);
   while (!possible) {
     Serial.println("move is not possible :(");
     shuffle(grid);
@@ -447,7 +527,6 @@ void setup() {
 }//end of setup
 
 
-
 void loop() {
 
   digitalWrite(13, HIGH);
@@ -466,52 +545,50 @@ void loop() {
     // scale from 0->1023 to tft.width
     p.x = map(p.x, TS_MINX, TS_MAXX, tft.width(), 0);
     p.y = (tft.height() - map(p.y, TS_MINY, TS_MAXY, tft.height(), 0));
-    //    bool isTouching(void);
 
     //Check each grid to see if it's been pressed
     for (int i = 0; i < 5; i++) {
       for (int j = 0; j < 6; j++) {
-        if (p.x > (20 + elementDistance * i) && p.x < (20 + elementDistance * (i + 1))
+        if (p.x > (20 + elementDistance * (ROWS - i - 1)) && p.x < (20 + elementDistance * (ROWS - i))
             && p.y > (40 + elementDistance * j) && p.y < (40 + elementDistance * (j + 1))) {
           isTouched[i][j] = true;
-          if (i != x1 || j != y1) {
+          //Serial.print("i: "); Serial.print(i); Serial.print(" j: "); Serial.print(j);
+          if (i != x1 || j != y1) {//a different element is selected
             selectElement++;
+            //Serial.println("increasing selectElement!");
           }
 
+          Serial.print("x1: "); Serial.print(x1); Serial.print(" y1: "); Serial.println(y1);
+          Serial.print("x2: "); Serial.print(x2); Serial.print(" y2: "); Serial.println(y2);
+
           if (selectElement == 1) {
+          //Serial.println("in selectElement == 1");
             x1 = i;
             y1 = j;
-            tft.drawRect(tft.width() - (20 + elementDistance * (i + 1)), tft.height() - (20 + elementDistance * (j + 2)),
+            tft.drawRect(tft.width() - (20 + elementDistance * (ROWS - i)), tft.height() - (20 + elementDistance * (j + 2)),//i + 1
                          elementDistance + 1, elementDistance + 1, RED);
             Serial.print("Grid "); Serial.print(x1); Serial.print(" "); Serial.println(y1);  //Print grid
 
           } else if (selectElement == 2) {
+          //Serial.println("in selectElement == 2");
             x2 = i;
             y2 = j;
 
-            tft.drawRect(tft.width() - (20 + elementDistance * (i + 1)), tft.height() - (20 + elementDistance * (j + 2)),
+            Serial.print("x1: "); Serial.print(x1); Serial.print(" y1: "); Serial.println(y1);
+            Serial.print("x2: "); Serial.print(x2); Serial.print(" y2: "); Serial.println(y2);
+
+            tft.drawRect(tft.width() - (20 + elementDistance * (ROWS - i)), tft.height() - (20 + elementDistance * (j + 2)),
                          elementDistance + 1, elementDistance + 1, RED);
             Serial.print("Grid "); Serial.print(x2); Serial.print(" "); Serial.println(y2);  //Print grid
 
-            //    selectElement++;
-            //       if (selectElement <= 2) {
-
-
-            if (x1 == x2 || y1 == y2) {
+            if (x1 == x2 || y1 == y2) {//switch must happen in the same row or the same column to be valid
               switchValues(grid, x1, y1, x2, y2);
-              /*if (checkGrid(grid, matched)) {
-
-                  //print grid
-                  printgrid(grid);
-                  updateGrid(grid, matched);
-
-                  if (!movePossible(grid)) shuffle;
-
-                  moves--;
-                  continue;
-                } else  {
-                  switchValues (grid, x1, y1, x2, y2);
-                }*/
+              
+              Serial.println("squares should be reverting to white");
+              tft.drawRect(tft.width() - (20 + elementDistance * (ROWS - x1)), tft.height() - (20 + elementDistance * (y1 + 2)),
+                 elementDistance + 1, elementDistance + 1, WHITE);
+              tft.drawRect(tft.width() - (20 + elementDistance * (ROWS - x2)), tft.height() - (20 + elementDistance * (y2 + 2)),
+                 elementDistance + 1, elementDistance + 1, WHITE);
 
               do {
                 if (checkGrid(grid, matched)) {
@@ -522,30 +599,61 @@ void loop() {
                 }
                 Serial.println("after checking for matches: ");
                 printGrid(grid);
+                printNumGrid(grid);
 
                 possible = movePossible(grid, posMove);
                 Serial.print("is move possible? ");
                 Serial.println(possible);
                 Serial.println("possible moves: ");
                 printGrid(posMove);
+                printNumGrid(posMove);
                 reset(posMove);
 
                 if (!possible) {
-                  Serial.println("move is not possible :(");
+                  Serial.println("there are no possible moves :(");
                   shuffle(grid);
                 }
+
+                Serial.println("waiting for input:");
               } while (!possible);
+
+            } else {
+              Serial.println("Error: switch not possible ");
+              //elements which cannot be matched flash red and white
+              tft.drawRect(tft.width() - (20 + elementDistance * (ROWS - x1)), tft.height() - (20 + elementDistance * (y1 + 2)),
+                 elementDistance + 1, elementDistance + 1, WHITE);
+              tft.drawRect(tft.width() - (20 + elementDistance * (ROWS - x2)), tft.height() - (20 + elementDistance * (y2 + 2)),
+                 elementDistance + 1, elementDistance + 1, WHITE);
+              delay(100);
+              tft.drawRect(tft.width() - (20 + elementDistance * (ROWS - x1)), tft.height() - (20 + elementDistance * (y1 + 2)),
+                 elementDistance + 1, elementDistance + 1, RED);
+              tft.drawRect(tft.width() - (20 + elementDistance * (ROWS - x2)), tft.height() - (20 + elementDistance * (y2 + 2)),
+                 elementDistance + 1, elementDistance + 1, RED);
+              delay(100);
+              tft.drawRect(tft.width() - (20 + elementDistance * (ROWS - x1)), tft.height() - (20 + elementDistance * (y1 + 2)),
+                 elementDistance + 1, elementDistance + 1, WHITE);
+              tft.drawRect(tft.width() - (20 + elementDistance * (ROWS - x2)), tft.height() - (20 + elementDistance * (y2 + 2)),
+                 elementDistance + 1, elementDistance + 1, WHITE);
+              delay(100);
+              tft.drawRect(tft.width() - (20 + elementDistance * (ROWS - x1)), tft.height() - (20 + elementDistance * (y1 + 2)),
+                 elementDistance + 1, elementDistance + 1, RED);
+              tft.drawRect(tft.width() - (20 + elementDistance * (ROWS - x2)), tft.height() - (20 + elementDistance * (y2 + 2)),
+                 elementDistance + 1, elementDistance + 1, RED);
+              delay(100);
+              tft.drawRect(tft.width() - (20 + elementDistance * (ROWS - x1)), tft.height() - (20 + elementDistance * (y1 + 2)),
+                 elementDistance + 1, elementDistance + 1, WHITE);
+              tft.drawRect(tft.width() - (20 + elementDistance * (ROWS - x2)), tft.height() - (20 + elementDistance * (y2 + 2)),
+                 elementDistance + 1, elementDistance + 1, WHITE);
             }
 
           } else if (selectElement > 2) {
+            Serial.println("In selectElement > 2");
             selectElement = 0;
-            tft.drawRect(tft.width() - (20 + elementDistance * (i + 1)), tft.height() - (20 + elementDistance * (j + 2)),
+            tft.drawRect(tft.width() - (20 + elementDistance * (x1 + 1)), tft.height() - (20 + elementDistance * (y1 + 2)),
+                 elementDistance + 1, elementDistance + 1, WHITE);
+            tft.drawRect(tft.width() - (20 + elementDistance * (x2 + 1)), tft.height() - (20 + elementDistance * (y2 + 2)),
                  elementDistance + 1, elementDistance + 1, WHITE);
           }
-
-          Serial.println("Error: switch not possible ");
-          printGrid(grid);
-
         }
       }
 
@@ -553,19 +661,5 @@ void loop() {
 
 
   }
-
-
-  //  for (int i = 0; i < 5; i++) {
-  //    for (int j = 0; j < 6; j++) {
-  //      if (isTouched[i][j]) {
-  //        Serial.print("Grid "); Serial.print(i); Serial.print(" "); Serial.println(j);  //Print grid
-  //
-  //        //Highlight the grid that's been pressed
-  //
-  //    }
-  //  }
-  //
-  //  }
-
-
 }
+
