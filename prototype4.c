@@ -297,13 +297,13 @@ int main(void) {
     srand (time(NULL));
 
     //generating first grid
-    /*
-    int grid[ROWS][COLUMNS];
-    for (int x = 0; x < ROWS; x ++) {
-        for (int y = 0; y < COLUMNS; y++){
-            grid[x][y] = rand()%6;
-        }
-    }*/
+    
+    // int grid[ROWS][COLUMNS];
+    // for (int x = 0; x < ROWS; x ++) {
+    //     for (int y = 0; y < COLUMNS; y++){
+    //         grid[x][y] = rand()%6;
+    //     }
+    // }
     int grid[ROWS][COLUMNS] = {{0,1,2,3,4,5}, {5,4,3,2,1,0}, {0,0,1,4,0,0}, {5,5,3,3,5,5}, {4,4,2,2,4,4}};
     printf("original grid: \n");
     printGrid(grid);

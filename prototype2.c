@@ -23,18 +23,10 @@ void printArray(int array[ROWS][COLUMNS]) {
     }
 }
 
-bool checkGrid (int array[ROWS][COLUMNS]) { //perhaps replace parameters bc of header?
-    int matched [ROWS][COLUMNS];
-    int match = 0, r = -1;
+bool checkGrid (int array[ROWS][COLUMNS], int matched[ROWS][COLUMNS]) { //perhaps replace parameters bc of header?
     bool change = false;
+    int match = 0, r = -1;
 
-    //set everything in matched to 0
-    for (int x = 0; x < ROWS; x ++) {
-        for (int y = 0; y < COLUMNS; y ++) {
-            matched[x][y] = 0;
-        }
-    }
-    
     //check rows for matches
     for (int x = 0; x < ROWS; x ++) {
         for (int y = 0; y < COLUMNS; y ++) {
@@ -84,23 +76,13 @@ bool checkGrid (int array[ROWS][COLUMNS]) { //perhaps replace parameters bc of h
         r = -1;
         match = 0;
     }
-    
-    if (!change)
         return change;
+}
 
-    //count points
+//Deletes matches, moves elements down, and generates new elements
+void updateGrid(int array[ROWS][COLUMNS],int matched [ROWS][COLUMNS]) { 
     countPoints(matched);
 
-    printf("\nshow matches\n");
-    for (int x = 0; x < ROWS; x ++) {
-        for (int y = 0; y < COLUMNS; y ++) {
-            printf(" %d  ", matched[x][y]);
-        }
-        printf("\n");
-    }
-    
-    
-    
     //delete matches
     for (int x = 0; x < ROWS; x++) {
         for (int y = 0; y < COLUMNS; y++) {
@@ -109,15 +91,7 @@ bool checkGrid (int array[ROWS][COLUMNS]) { //perhaps replace parameters bc of h
             }
         }
     }
-    printf("\n");
-    /*
-    printf("\nafter deleting matches\n");
-    printArray(array);
-    */
-    return change;
-}
 
-void updateGrid(int array[ROWS][COLUMNS]) { 
     //shift down
     for (int x = ROWS - 1; x >= 0; x--) {//starting from the bottom row
         for (int y = 0; y < COLUMNS; y++) {//starting from the left-most column
@@ -147,17 +121,17 @@ void updateGrid(int array[ROWS][COLUMNS]) {
     }
 
     //print array after refill
-    printf("\nUpdating\n");
-    printArray(array);
+    //printf("\nUpdating\n");
+    //printArray(array);
 
     //check new array for matches
-    while(checkGrid(array)) {
-        updateGrid(array);
+    if(checkGrid(array, matched)) {
+        updateGrid(array, matched);
     }
 }
 
 
-void shuffle(int array[ROWS][COLUMNS]) {
+void shuffle(int array[ROWS][COLUMNS], int matched[ROWS][COLUMNS]) {
     printf("\nNo possible moves: shuffling\n");
     for (int x = 0; x < ROWS; x ++) {
         for (int y = 0; y < COLUMNS; y++){
@@ -167,12 +141,12 @@ void shuffle(int array[ROWS][COLUMNS]) {
         printf("\n");
     }
 
-    while(checkGrid(array)) {
+    while(checkGrid(array, matched)) {
         updateGrid(array);
     }
 }
 
-bool movePossible(int array[ROWS][COLUMNS]) {
+bool movePossible(int array[ROWS][COLUMNS], int posMove[ROWS][COLUMNS]) {
     int a = 0;
     bool isPossible = false;
 
@@ -271,25 +245,45 @@ void switchValues (int grid[ROWS][COLUMNS], int x1, int y1, int x2, int y2) {
     printArray (grid);
 }
 
-int main (void) {
+int main(void) {
     int grid[ROWS][COLUMNS];
     srand (time(NULL));
     int moves = 20, x1, y1, x2, y2;
 
-    printf("print array\n");
+  //  printf("print array\n");
     for (int x = 0; x < ROWS; x ++) {
         for (int y = 0; y < COLUMNS; y++){
             grid[x][y] = rand()%6;
-            printf(" %d  ", grid[x][y]);
+            //printf(" %d  ", grid[x][y]);
         }
-        printf("\n");
+     //   printf("\n");
+    }
+
+    int matched [ROWS][COLUMNS];
+
+    //set everything in matched to 0
+    for (int x = 0; x < ROWS; x ++) {
+        for (int y = 0; y < COLUMNS; y ++) {
+            matched[x][y] = 0;
+        }
+    }
+
+    int posMove [ROWS][COLUMNS];
+
+    //set everything in matched to 0
+    for (int x = 0; x < ROWS; x++) {
+        for (int y = 0; y < COLUMNS; y++) {
+            posMove[x][y] = 0;
+        }
     }
     
-    if (checkGrid(grid)) {
-        updateGrid(grid);
+    if (checkGrid(grid, matched)) {
+        updateGrid(grid, matched);
     }
-    
-    printf("\n\n");
+
+    if (!movePossible(grid, posMove)) shuffle; //assume shuffle does all the work of checking and updating etc
+
+    //printf("\n\n");
     printArray(grid);
 
     //calling input
@@ -315,11 +309,13 @@ int main (void) {
         if (x1 == x2 || y1 == y2) {
              switchValues(grid, x1, y1, x2, y2);
 
-            if (checkGrid(grid)) {
+            if (checkGrid(grid, matched)) {
                 
                 //print array
                 printArray(grid);
-                updateGrid(grid);
+                updateGrid(grid, matched);
+
+                if (!movePossible(grid)) shuffle;
 
                 moves--;
                 continue;
