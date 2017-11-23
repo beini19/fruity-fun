@@ -143,7 +143,7 @@ void bmpdraw(File f, int x, int y) //draws bitmap to screen
       }
     }
 }
-/*
+
 void reset(int grid[ROWS][COLUMNS]) {//reset every element of grid to 0
   for (int i = 0; i < ROWS; i++) {
     for (int j = 0; j < COLUMNS; j++) {
@@ -151,89 +151,7 @@ void reset(int grid[ROWS][COLUMNS]) {//reset every element of grid to 0
     }
   }
 }
-*/
 
-boolean bmpReadHeader(File f) 
-{
-    // read header
-    uint32_t tmp;
-    uint8_t bmpDepth;
-    
-    if (read16(f) != 0x4D42) {
-        // magic bytes missing
-        return false;
-    }
-
-    // read file size
-    tmp = read32(f);
-    Serial.print("size 0x");
-    Serial.println(tmp, HEX);
-
-    // read and ignore creator bytes
-    read32(f);
-
-    bmp_image_offset = read32(f);
-    Serial.print("offset ");
-    Serial.println(bmp_image_offset, DEC);
-
-    // read DIB header
-    tmp = read32(f);
-    Serial.print("header size ");
-    Serial.println(tmp, DEC);
-    
-    int bmp_width = read32(f);
-    int bmp_height = read32(f);
-    
-    if(bmp_width != bmp_width || bmp_height != bmp_height)  {    // if image is not 320x240, return false
-        return false;
-    }
-
-    if (read16(f) != 1)
-    return false;
-
-    bmpDepth = read16(f);
-    Serial.print("bitdepth ");
-    Serial.println(bmpDepth, DEC);
-
-    if (read32(f) != 0) {
-        // compression not supported!
-        return false;
-    }
-
-    Serial.print("compression ");
-    Serial.println(tmp, DEC);
-
-    return true;
-}
-
-/*********************************************/
-// These read data from the SD card file and convert them to big endian
-// (the data is stored in little endian format!)
-
-// LITTLE ENDIAN!
-uint16_t read16(File f)
-{
-    uint16_t d;
-    uint8_t b;
-    b = f.read();
-    d = f.read();
-    d <<= 8;
-    d |= b;
-    return d;
-}
-
-// LITTLE ENDIAN!
-uint32_t read32(File f)
-{
-    uint32_t d;
-    uint16_t b;
-
-    b = read16(f);
-    d = read16(f);
-    d <<= 16;
-    d |= b;
-    return d;
-}
 
 void printNumGrid(int grid[ROWS][COLUMNS]) {
   for (int x = 0; x < ROWS; x++) {
@@ -257,21 +175,7 @@ void printGrid(int grid[ROWS][COLUMNS]) {
       //Check the random number to determine which colour fruit to draw
       if (grid[x][y] >= 0 && grid[x][y] <=5) {
         bmpFile = SD.open(bmp_files[grid[x][y]]);
-        if (! bmpFile) {
-            Serial.println("didnt find image");
-            tft.setTextColor(WHITE);    tft.setTextSize(1);
-            tft.println("didnt find BMPimage");
-            while (1);
-        }
-   
-        if(! bmpReadHeader(bmpFile)) {
-            Serial.println("bad bmp");
-            tft.setTextColor(WHITE);    tft.setTextSize(1);
-            tft.println("bad bmp");
-            return;
-        }
-              Serial.println("huh");
-        bmpdraw(bmpFile, (x + 1)*elementDistance, (COLUMNS - y)*elementDistance);
+        bmpdraw(bmpFile, (x)*elementDistance+25, (COLUMNS - y)*elementDistance+15);
         bmpFile.close();
              /* Fruit
        *  0 = apple
@@ -287,7 +191,7 @@ void printGrid(int grid[ROWS][COLUMNS]) {
   delay(100);
 }
 }
-/*
+
 int displayMatch(int matchedElement) {
   switch (matchedElement) {
     case 0:
@@ -343,7 +247,7 @@ void countPoints(int matched[ROWS][COLUMNS], int countMatches[6]) {
 
   reset(matched);
 }
-*/
+
 bool checkGrid (int grid[ROWS][COLUMNS], int matched[ROWS][COLUMNS]) { //perhaps replace parameters bc of header?
   bool change = false;
   int match = 0, r = -1;
@@ -712,7 +616,7 @@ void setup() {
 //  while (!possible) {
 //    Serial.println("move is not possible :(");
 //    shuffle(grid);
-//
+
 //    if (checkGrid(grid, matched)) {
 //      Serial.println("there are matches!");
 //      printGrid(matched);
@@ -729,10 +633,11 @@ void setup() {
 //    Serial.println("possible moves: ");
 //    printGrid(posMove);
 //  }
-  
-}/********************************************** END OF SETUP *******************************************/
+  }
+ 
+/********************************************** END OF SETUP *******************************************/
 
-void loop() {
+  void loop() {
 
   digitalWrite(13, HIGH);
   TSPoint p = ts.getPoint();
@@ -741,9 +646,6 @@ void loop() {
   pinMode(XM, OUTPUT);
   pinMode(YP, OUTPUT);
 
-//  //Currently not using:
-//  bool isTouched[5][6] = {false}; //Boolean values are true when area of screen is being pressed
-//
 //  if (p.z > MINPRESSURE && p.z < MAXPRESSURE) {
 //
 //
