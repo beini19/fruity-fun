@@ -520,92 +520,97 @@ void loop() {
    
     p.x = map(p.x, TS_MINX, TS_MAXX, tft.width(), 0);
     p.y = (tft.height() - map(p.y, TS_MINY, TS_MAXY, tft.height(), 0));
-    
-    if (!menuOpen) {
-      // Check each grid to see if it's been pressed
-      for (int i = 0; i < 5; i++) {
-        for (int j = 0; j < 6; j++) {
-          if (p.x > (20 + elementDistance * (ROWS - i - 1)) && p.x < (20 + elementDistance * (ROWS - i))
-              && p.y > (40 + elementDistance * j) && p.y < (40 + elementDistance * (j + 1))) {
-            if (i != x1 || j != y1) {//a different element is selected
-              selectElement++;
-            }
-            Serial.print("x1: "); Serial.print(x1); Serial.print(" y1: "); Serial.println(y1);
-            Serial.print("x2: "); Serial.print(x2); Serial.print(" y2: "); Serial.println(y2);
-            
-            if (selectElement == 1) {
-              x1 = i;
-              y1 = j;
-              highlightGrid(i, j, RED);
-              Serial.print("Grid "); Serial.print(x1); Serial.print(" "); Serial.println(y1);  //Print grid
-            
-            } else if (selectElement == 2) {
-              x2 = i;
-              y2 = j;
+
+    int moves = 5;
+    while (moves > 0) {
+      if (!menuOpen) {
+        // Check each grid to see if it's been pressed
+        for (int i = 0; i < 5; i++) {
+          for (int j = 0; j < 6; j++) {
+            if (p.x > (20 + elementDistance * (ROWS - i - 1)) && p.x < (20 + elementDistance * (ROWS - i))
+                && p.y > (40 + elementDistance * j) && p.y < (40 + elementDistance * (j + 1))) {
+              if (i != x1 || j != y1) {//a different element is selected
+                selectElement++;
+              }
               Serial.print("x1: "); Serial.print(x1); Serial.print(" y1: "); Serial.println(y1);
               Serial.print("x2: "); Serial.print(x2); Serial.print(" y2: "); Serial.println(y2);
-              highlightGrid(i, j, RED);
-              Serial.print("Grid "); Serial.print(x2); Serial.print(" "); Serial.println(y2);  //Print grid
-             
-              bool moveLegal = false;
-              //check if illegal match
-              //check if within range
-             
-              if ((x1 == x2 && abs(y1 - y2) == 1) || (y1 == y2 && abs(x1 - x2) == 1)) {
-                //check if there is a match
-                switchValues(grid, x1, y1, x2, y2);
-                if (checkGrid(grid, matched)) {
-                  Serial.println("there are matches!");
-                  moveLegal = true;
-                } else {
-                  switchValues(grid, x1, y1, x2, y2);//switch values back
-                }
-              }
-
-              if (moveLegal) {//switch must happen in the same row or the same column to be valid
-                printGrid(grid);
-                
-                //returning selected squares to white
-                highlightGrid(x1, y1, WHITE);
-                highlightGrid(x2, y2, WHITE);
+              
+              if (selectElement == 1) {
+                x1 = i;
+                y1 = j;
+                highlightGrid(i, j, RED);
+                Serial.print("Grid "); Serial.print(x1); Serial.print(" "); Serial.println(y1);  //Print grid
+              
+              } else if (selectElement == 2) {
+                x2 = i;
+                y2 = j;
+                Serial.print("x1: "); Serial.print(x1); Serial.print(" y1: "); Serial.println(y1);
+                Serial.print("x2: "); Serial.print(x2); Serial.print(" y2: "); Serial.println(y2);
+                highlightGrid(i, j, RED);
+                Serial.print("Grid "); Serial.print(x2); Serial.print(" "); Serial.println(y2);  //Print grid
                
-                do {
+                bool moveLegal = false;
+                //check if illegal match
+                //check if within range
+               
+                if ((x1 == x2 && abs(y1 - y2) == 1) || (y1 == y2 && abs(x1 - x2) == 1)) {
+                  //check if there is a match
+                  switchValues(grid, x1, y1, x2, y2);
                   if (checkGrid(grid, matched)) {
                     Serial.println("there are matches!");
-                    printGrid(matched);
-                    updateGrid(grid, matched);
-                    Serial.println("updated grid");
+                    moveLegal = true;
+                  } else {
+                    switchValues(grid, x1, y1, x2, y2);//switch values back
                   }
-                  Serial.println("after checking for matches: ");
+                }
+  
+                if (moveLegal) {//switch must happen in the same row or the same column to be valid
+                  moves--;
+                  Serial.print("moves left: "); Serial.println(moves);
                   printGrid(grid);
-                  printNumGrid(grid);
                   
-                  possible = movePossible(grid, posMove);
-                  Serial.print("is move possible? ");
-                  Serial.println(possible);
-                  Serial.println("possible moves: ");
-                  printGrid(posMove);
-                  printNumGrid(posMove);
-                  reset(posMove);
-                  
-                  if (!possible) {
-                    Serial.println("there are no possible moves :(");
-                    shuffle(grid);
-                  }
-                  Serial.println("waiting for input:");
-                } while (!possible);
-             
-              } else {
-                Serial.println("Error: switch not possible ");
-                //elements which cannot be matched flash red and white
-                gridFlash(x1, y1, x2, y2);
+                  //returning selected squares to white
+                  highlightGrid(x1, y1, WHITE);
+                  highlightGrid(x2, y2, WHITE);
+                 
+                  do {
+                    if (checkGrid(grid, matched)) {
+                      Serial.println("there are matches!");
+                      printGrid(matched);
+                      updateGrid(grid, matched);
+                      Serial.println("updated grid");
+                    }
+                    Serial.println("after checking for matches: ");
+                    printGrid(grid);
+                    printNumGrid(grid);
+                    
+                    possible = movePossible(grid, posMove);
+                    Serial.print("is move possible? ");
+                    Serial.println(possible);
+                    Serial.println("possible moves: ");
+                    printGrid(posMove);
+                    printNumGrid(posMove);
+                    reset(posMove);
+                    
+                    if (!possible) {
+                      Serial.println("there are no possible moves :(");
+                      shuffle(grid);
+                    }
+                    Serial.println("waiting for input:");
+                  } while (!possible);
+               
+                } else {
+                  Serial.println("Error: switch not possible ");
+                  //elements which cannot be matched flash red and white
+                  gridFlash(x1, y1, x2, y2);
+                }
+                
+              } else if (selectElement > 2) {
+                Serial.println("In selectElement > 2");
+                selectElement = 0;
+                highlightGrid(x1, y1, WHITE);
+                highlightGrid(x2, y2, WHITE);
               }
-              
-            } else if (selectElement > 2) {
-              Serial.println("In selectElement > 2");
-              selectElement = 0;
-              highlightGrid(x1, y1, WHITE);
-              highlightGrid(x2, y2, WHITE);
             }
           }
         }

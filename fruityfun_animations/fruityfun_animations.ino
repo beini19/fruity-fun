@@ -1,3 +1,7 @@
+#include <Esplora.h>
+
+#include <Esplora.h>
+
 #include <Elegoo_GFX.h> //include libraries
 #include <Elegoo_TFTLCD.h>
 #include <TouchScreen.h>
@@ -93,6 +97,21 @@ void reset(int grid[ROWS][COLUMNS]) {//reset every element of grid to 0
       grid[i][j] = 8;//no element would ever equal 8 under any circumstances
     }
   }
+}
+
+void gridFlash(int x, int y) {
+  for (int i = 0; i < 3; i++) {
+    tft.drawRect(tft.width() - (20 + elementDistance * (ROWS - x)), tft.height() - (20 + elementDistance * (y + 2)),//i + 1
+                       elementDistance + 1, elementDistance + 1, RED);
+    tft.drawRect(tft.width() - (20 + elementDistance * (ROWS - x)), tft.height() - (20 + elementDistance * (y + 2)),//i + 1
+                       elementDistance + 1, elementDistance + 1, WHITE);
+    delay(100);
+  }
+}
+
+void highlightGrid(int x, int y, uint16_t colour) {
+    tft.drawRect(tft.width() - (20 + elementDistance * (ROWS - x)), tft.height() - (20 + elementDistance * (y + 2)),//i + 1
+                       elementDistance + 1, elementDistance + 1, colour);
 }
 
 void printNumGrid(int grid[ROWS][COLUMNS]) {
@@ -284,11 +303,11 @@ void updateGrid(int grid[ROWS][COLUMNS], int matched[ROWS][COLUMNS]) {
   //shift down
   for (int x = ROWS - 1; x >= 0; x--) {//starting from the bottom row
     for (int y = 0; y < COLUMNS; y++) {//starting from the left-most column
-      if (grid[x][y] == 8) {
-        for (int a = x - 1; a >= 0; a--) {
-          if (grid[a][y] != 8) {
-            grid[x][y] = grid[a][y];
-            grid[a][y] = 8;
+      if (grid[x][y] == 8) {//if this space is empty
+        for (int a = x - 1; a >= 0; a--) {//checks every element in the same column as the empty space and above the empty space
+          if (grid[a][y] != 8) {//it finds an element above the empty space
+            grid[x][y] = grid[a][y];//it switches the positions of the empty space and the element
+            grid[a][y] = 8;//the position the element used to be in is now set to empty
             break;
           }
           delay (100);
@@ -406,7 +425,6 @@ bool movePossible(int grid[ROWS][COLUMNS], int posMove[ROWS][COLUMNS]) {
 void switchValues (int grid[ROWS][COLUMNS], int x1, int y1, int x2, int y2) {
   Serial.println("switching values...");
 
-  //switch two values in grid
   int r;
 
   printNumGrid(grid);
@@ -420,10 +438,8 @@ void switchValues (int grid[ROWS][COLUMNS], int x1, int y1, int x2, int y2) {
   grid[x2][y2] = r;
 
   Serial.println("After switching values: ");
-  //Serial.print("x1: "); Serial.println(x1); Serial.print("y1: "); Serial.println(y1); Serial.print("x2: "); Serial.println(x2); Serial.print("y2: "); Serial.println(y2);
   Serial.print("grid[x1][y1]: "); Serial.println(grid[x1][y1]);
   Serial.print("grid[x2][y2]: "); Serial.println(grid[x2][y2]);
-  printGrid(grid);
   Serial.println("After printing grid");
   printNumGrid(grid);
 }
@@ -583,17 +599,14 @@ void loop() {
           if (p.x > (20 + elementDistance * (ROWS - i - 1)) && p.x < (20 + elementDistance * (ROWS - i))
               && p.y > (40 + elementDistance * j) && p.y < (40 + elementDistance * (j + 1))) {
             isTouched[i][j] = true;
-            //Serial.print("i: "); Serial.print(i); Serial.print(" j: "); Serial.print(j);
             if (i != x1 || j != y1) {//a different element is selected
               selectElement++;
-              //Serial.println("increasing selectElement!");
             }
 
             Serial.print("x1: "); Serial.print(x1); Serial.print(" y1: "); Serial.println(y1);
             Serial.print("x2: "); Serial.print(x2); Serial.print(" y2: "); Serial.println(y2);
 
             if (selectElement == 1) {
-              //Serial.println("in selectElement == 1");
               x1 = i;
               y1 = j;
               tft.drawRect(tft.width() - (20 + elementDistance * (ROWS - i)), tft.height() - (20 + elementDistance * (j + 2)),//i + 1
@@ -601,7 +614,6 @@ void loop() {
               Serial.print("Grid "); Serial.print(x1); Serial.print(" "); Serial.println(y1);  //Print grid
 
             } else if (selectElement == 2) {
-              //Serial.println("in selectElement == 2");
               x2 = i;
               y2 = j;
 
@@ -612,10 +624,25 @@ void loop() {
                            elementDistance + 1, elementDistance + 1, RED);
               Serial.print("Grid "); Serial.print(x2); Serial.print(" "); Serial.println(y2);  //Print grid
 
-              if (x1 == x2 || y1 == y2) {//switch must happen in the same row or the same column to be valid
-                switchValues(grid, x1, y1, x2, y2);
+              bool moveLegal = false;
+              //check if illegal match
+                //check if within range
+                if ((x1 == x2 && abs(y1 - y2) == 1) || (y1 == y2 && abs(x1 - x2) == 1)) {
+                  //check if there is a match
+                  switchValues(grid, x1, y1, x2, y2);
+                  if (checkGrid(grid, matched)) {
+                    Serial.println("there are matches!");
+                    moveLegal = true;
+                  } else {
+                    switchValues(grid, x1, y1, x2, y2);//switch values back
+                  }
+                }
+                
 
-                Serial.println("squares should be reverting to white");
+              if (moveLegal) {//switch must happen in the same row or the same column to be valid
+                printGrid(grid);
+
+                //returning selected squares to white
                 tft.drawRect(tft.width() - (20 + elementDistance * (ROWS - x1)), tft.height() - (20 + elementDistance * (y1 + 2)),
                              elementDistance + 1, elementDistance + 1, WHITE);
                 tft.drawRect(tft.width() - (20 + elementDistance * (ROWS - x2)), tft.height() - (20 + elementDistance * (y2 + 2)),
@@ -651,6 +678,8 @@ void loop() {
               } else {
                 Serial.println("Error: switch not possible ");
                 //elements which cannot be matched flash red and white
+                gridFlash(x,y);
+                /*
                 tft.drawRect(tft.width() - (20 + elementDistance * (ROWS - x1)), tft.height() - (20 + elementDistance * (y1 + 2)),
                              elementDistance + 1, elementDistance + 1, WHITE);
                 tft.drawRect(tft.width() - (20 + elementDistance * (ROWS - x2)), tft.height() - (20 + elementDistance * (y2 + 2)),
@@ -675,6 +704,7 @@ void loop() {
                              elementDistance + 1, elementDistance + 1, WHITE);
                 tft.drawRect(tft.width() - (20 + elementDistance * (ROWS - x2)), tft.height() - (20 + elementDistance * (y2 + 2)),
                              elementDistance + 1, elementDistance + 1, WHITE);
+                */
               }
 
             } else if (selectElement > 2) {
@@ -687,7 +717,6 @@ void loop() {
             }
           }
         }
-
       }
     }
 
