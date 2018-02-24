@@ -1,1 +1,1 @@
-Welcome to Fruity Fun! You can find the complete version of the game under the "fruityfun_finalNoGraphics" folder. For cute pictures of fruit, go over to "fruityfunwithactualfruits".
+Welcome to Fruity Fun! Download "fruityfun.ino" on your Arduino to start playing. You can find a lite version of the game under the "fruityfun_finalNoGraphics" folder. For cute pictures of fruit, head over to "fruityfunwithactualfruits".
